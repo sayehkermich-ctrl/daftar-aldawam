@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دفتر الدوام — تقويم متابعة العمل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0B0F1C;
+    --glass: rgba(255,255,255,0.055);
+    --glass-strong: rgba(255,255,255,0.09);
+    --glass-border: rgba(255,255,255,0.12);
+    --text:#F4F6FB;
+    --text-soft: rgba(244,246,251,0.6);
+    --indigo:#6C5CE7;
+    --cyan:#22D3EE;
+    --green:#34D399;
+    --green-deep:#10B981;
+    --red:#FB7185;
+    --red-deep:#E11D48;
+    --gold:#FBBF24;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 12% -10%, rgba(108,92,231,0.38), transparent 45%),
+      radial-gradient(circle at 92% 8%, rgba(34,211,238,0.28), transparent 42%),
+      radial-gradient(circle at 50% 105%, rgba(251,191,36,0.14), transparent 45%),
+      var(--bg-deep);
+    background-attachment: fixed;
+    padding: 2.5rem 1rem 3rem;
+  }
+
+  .page{ max-width: 480px; margin: 0 auto; }
+
+  .app-header{ text-align:center; margin-bottom: 1.7rem; }
+  .app-title{
+    font-family:'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: 2.3rem;
+    margin: 0;
+    background: linear-gradient(90deg, var(--cyan), var(--indigo));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.5px;
+  }
+  .app-sub{
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    margin: 8px 0 0;
+  }
+
+  .ledger-card{
+    position: relative;
+    background: var(--glass);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 1.6rem 1.4rem 1.4rem;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+
+  .month-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 1.1rem;
+  }
+  .nav-btn{
+    background: var(--glass-strong);
+    border: 1px solid var(--glass-border);
+    width:38px; height:38px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .nav-btn:hover{
+    background: linear-gradient(135deg, var(--indigo), var(--cyan));
+    box-shadow: 0 0 18px rgba(108,92,231,0.55);
+    transform: scale(1.06);
+  }
+  .nav-btn:active{ transform: scale(0.94); }
+  .nav-btn:focus-visible{ outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .nav-btn svg{ stroke: var(--text); }
+
+  .month-label{ text-align:center; line-height:1.25; }
+  #monthName{
+    display:block;
+    font-family:'Cairo', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--text);
+  }
+  #yearName{ font-size: 0.88rem; color: var(--text-soft); }
+
+  .weekday-row{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 0.4rem;
+  }
+  .weekday{
+    text-align:center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    padding: 6px 0;
+  }
+
+  .calendar-grid{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .day-cell{
+    position:relative;
+    aspect-ratio: 1 / 1;
+    background: var(--glass);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action: manipulation;
+    overflow:hidden;
+    transition: background .25s ease, transform .12s ease, box-shadow .25s ease;
+  }
+  .day-cell.empty{ background: transparent; border-color: transparent; cursor:default; }
+  .day-cell:not(.empty):hover{ transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
+  .day-cell:not(.empty):active{ transform: scale(0.93); }
+  .day-cell.today{ box-shadow: 0 0 0 2px var(--gold) inset, 0 0 14px rgba(251,191,36,0.45); }
+  .day-cell.state-1{
+    background: linear-gradient(160deg, rgba(52,211,153,0.28), rgba(52,211,153,0.06));
+    box-shadow: inset 0 0 0 1px rgba(52,211,153,0.45);
+  }
+  .day-cell.state-2{
+    background: linear-gradient(160deg, rgba(251,113,133,0.28), rgba(251,113,133,0.06));
+    box-shadow: inset 0 0 0 1px rgba(251,113,133,0.45);
+  }
+
+  .day-num{
+    position:relative;
+    z-index:2;
+    font-weight:600;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+
+  .stamp{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .stamp .glow{ opacity:0; transform-origin:center; animation: glowIn .5s ease forwards; }
+  .stamp-green .glow{ filter: blur(7px); fill: rgba(52,211,153,0.45); }
+  .stamp-red .glow{ filter: blur(7px); fill: rgba(251,113,133,0.45); }
+  .stamp .draw{
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: drawIn .45s ease forwards .1s;
+  }
+  @keyframes drawIn{ to{ stroke-dashoffset:0; } }
+  @keyframes glowIn{ from{ opacity:0; transform:scale(0.5);} to{ opacity:1; transform:scale(1);} }
+
+  .note-dot{
+    position:absolute; bottom:4px; inset-inline-end:4px;
+    width:6px; height:6px; border-radius:50%;
+    background: var(--gold);
+    box-shadow: 0 0 6px rgba(251,191,36,0.85);
+    z-index:3;
+  }
+
+  .legend{
+    margin-top: 1.2rem;
+    display:flex; flex-direction:column; gap:7px;
+    font-size: 0.78rem; color: var(--text-soft);
+  }
+  .legend-item{ display:flex; align-items:center; gap:8px; }
+  .dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .dot-green{ background: var(--green); box-shadow: 0 0 6px rgba(52,211,153,0.7); }
+  .dot-red{ background: var(--red); box-shadow: 0 0 6px rgba(251,113,133,0.7); }
+  .dot-note{ background: var(--gold); box-shadow: 0 0 6px rgba(251,191,36,0.7); }
+
+  .stats-row{
+    display:flex; justify-content:space-around;
+    margin-top: 1.15rem; padding-top: 1rem;
+    border-top: 1px dashed rgba(255,255,255,0.12);
+  }
+  .stat{ font-size:0.85rem; color:var(--text-soft); display:flex; align-items:center; gap:6px; }
+  .stat strong{ font-size:1.15rem; color: var(--text); }
+  .stat-green strong{ color: var(--green); }
+  .stat-red strong{ color: var(--red); }
+
+  .app-footer{
+    text-align:center; color: var(--text-soft);
+    font-size: 0.74rem; margin-top: 1.4rem;
+  }
+
+  .backup-row{
+    display:flex; gap:8px;
+    margin-top: 0.9rem;
+  }
+  .backup-btn{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    background: var(--glass-strong);
+    border: 1px solid var(--glass-border);
+    color: var(--text-soft);
+    font-family: inherit; font-size: 0.76rem; font-weight:600;
+    padding: 9px 6px; border-radius: 12px; cursor:pointer;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+  .backup-btn:hover{
+    color: var(--text);
+    box-shadow: 0 0 14px rgba(34,211,238,0.25);
+  }
+  .backup-btn svg{ flex-shrink:0; }
+
+  .modal-overlay{
+    position:fixed; inset:0;
+    background: rgba(6,9,18,0.65);
+    backdrop-filter: blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition: opacity .2s ease;
+    z-index:50; padding: 1rem;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .modal-card{
+    background: rgba(19,23,38,0.9);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    padding: 1.4rem;
+    width:100%; max-width: 380px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+    transform: scale(0.92) translateY(12px);
+    transition: transform .22s ease;
+  }
+  .modal-overlay.open .modal-card{ transform: scale(1) translateY(0); }
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 0.9rem;
+  }
+  #modalDate{ font-size: 1.02rem; font-weight:700; margin:0; color: var(--text); }
+  .icon-btn{
+    background:none; border:none; color: var(--text-soft);
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition: background .15s;
+  }
+  .icon-btn:hover{ background: rgba(255,255,255,0.08); }
+
+  #noteText{
+    width:100%; min-height:120px;
+    border-radius: 14px; border: 1px solid var(--glass-border);
+    padding: 10px 12px; font-family: inherit; font-size: 0.9rem;
+    resize: vertical; background: rgba(255,255,255,0.05); color: var(--text);
+  }
+  #noteText::placeholder{ color: var(--text-soft); }
+  #noteText:focus{ outline: 2px solid var(--cyan); outline-offset:1px; }
+
+  .modal-actions{ display:flex; gap:10px; margin-top: 1rem; }
+  .btn{
+    flex:1; padding: 10px; border-radius: 12px; border:none;
+    font-weight:700; font-size:0.86rem; cursor:pointer;
+    font-family: inherit;
+    transition: transform .12s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .btn:active{ transform: scale(0.96); }
+  .btn-primary{ background: linear-gradient(135deg, var(--indigo), var(--cyan)); color:#fff; }
+  .btn-primary:hover{ box-shadow: 0 0 18px rgba(34,211,238,0.5); }
+  .btn-ghost{ background: transparent; color: var(--red); border:1px solid rgba(251,113,133,0.4); }
+  .btn-ghost:hover{ background: rgba(251,113,133,0.1); }
+
+  @media (max-width: 420px){
+    .app-title{ font-size: 1.9rem; }
+    .day-num{ font-size: 0.78rem; }
+    .ledger-card{ padding: 1.2rem 1rem 1.1rem; }
+    .weekday{ font-size: 0.64rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .stamp .draw, .stamp .glow{ animation:none; stroke-dashoffset:0; opacity:1; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="app-header">
+    <h1 class="app-title">دفتر الدوام</h1>
+    <p class="app-sub">قوّم أيامك بلمسة واحدة</p>
+  </header>
+
+  <main class="ledger-card">
+    <div class="month-nav">
+      <button id="prevMonth" class="nav-btn" aria-label="الشهر السابق" title="الشهر السابق">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+      <div class="month-label">
+        <span id="monthName">—</span>
+        <span id="yearName">—</span>
+      </div>
+      <button id="nextMonth" class="nav-btn" aria-label="الشهر التالي" title="الشهر التالي">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+      </button>
+    </div>
+
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="dot dot-green"></span> نقرة واحدة = حضور</div>
+      <div class="legend-item"><span class="dot dot-red"></span> نقرتان = غياب</div>
+      <div class="legend-item"><span class="dot dot-note"></span> اضغط مطوّلاً لكتابة ملاحظة</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat stat-green">أيام الحضور <strong id="presentCount">0</strong></div>
+      <div class="stat stat-red">أيام الغياب <strong id="absentCount">0</strong></div>
+    </div>
+
+    <div class="backup-row">
+      <button id="exportBtn" class="backup-btn" title="حفظ نسخة احتياطية">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        تصدير نسخة احتياطية
+      </button>
+      <button id="importBtn" class="backup-btn" title="استرداد نسخة احتياطية">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        استرداد نسخة
+      </button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </main>
+
+  <footer class="app-footer">تُحفظ بياناتك على هذا الجهاز — صدّرها قبل تغيير الهاتف لاستردادها لاحقًا</footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="modalDate">—</h2>
+      <button id="closeModal" class="icon-btn" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <textarea id="noteText" placeholder="اكتب ملاحظتك عن هذا اليوم..."></textarea>
+    <div class="modal-actions">
+      <button id="deleteNote" class="btn btn-ghost">حذف الملاحظة</button>
+      <button id="saveNote" class="btn btn-primary">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'calendar-data';
+  let calendarData = {};
+  let currentDate = new Date();
+  currentDate.setDate(1);
+  const today = new Date();
+
+  const monthNames = ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const weekdayShort = ['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
+  const weekdayFull = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+  const grid = document.getElementById('calendarGrid');
+  const weekdayRow = document.getElementById('weekdayRow');
+  const monthNameEl = document.getElementById('monthName');
+  const yearNameEl = document.getElementById('yearName');
+  const presentCountEl = document.getElementById('presentCount');
+  const absentCountEl = document.getElementById('absentCount');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalDate = document.getElementById('modalDate');
+  const noteText = document.getElementById('noteText');
+  let activeDateKey = null;
+
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function dateKey(y,m,d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+
+  function stampSVG(color){
+    if(color === 'green'){
+      return `<svg class="stamp stamp-green" viewBox="0 0 40 40">
+        <circle class="glow" cx="20" cy="20" r="15"/>
+        <path class="draw" d="M11 21 L17 27 L29 13" fill="none" stroke="#34D399" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    }
+    return `<svg class="stamp stamp-red" viewBox="0 0 40 40">
+      <circle class="glow" cx="20" cy="20" r="15"/>
+      <path class="draw" d="M13 13 L27 27 M27 13 L13 27" fill="none" stroke="#FB7185" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  function loadData(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      calendarData = raw ? JSON.parse(raw) : {};
+    }catch(e){
+      calendarData = {};
+    }
+    render();
+  }
+
+  function saveData(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(calendarData));
+    }catch(e){
+      console.error('تعذر الحفظ', e);
+    }
+  }
+
+  function buildWeekdayRow(){
+    weekdayRow.innerHTML = weekdayShort.map(w => `<div class="weekday">${w}</div>`).join('');
+  }
+
+  function cellInnerHTML(key, d){
+    const rec = calendarData[key] || { state:0, note:'' };
+    return `<span class="day-num">${d}</span>
+      ${rec.state===1 ? stampSVG('green') : ''}
+      ${rec.state===2 ? stampSVG('red') : ''}
+      ${rec.note ? '<span class="note-dot"></span>' : ''}`;
+  }
+
+  function render(){
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    monthNameEl.textContent = monthNames[m];
+    yearNameEl.textContent = y;
+
+    const firstDay = new Date(y, m, 1);
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const offset = firstDay.getDay();
+
+    let html = '';
+    for(let i=0; i<offset; i++){ html += `<div class="day-cell empty"></div>`; }
+    for(let d=1; d<=daysInMonth; d++){
+      const key = dateKey(y,m,d);
+      const rec = calendarData[key] || { state:0, note:'' };
+      const isToday = (y===today.getFullYear() && m===today.getMonth() && d===today.getDate());
+      html += `<div class="day-cell state-${rec.state}${isToday?' today':''}" data-date="${key}">${cellInnerHTML(key,d)}</div>`;
+    }
+    grid.innerHTML = html;
+    updateStats();
+    attachCellHandlers();
+  }
+
+  function updateStats(){
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    let present = 0, absent = 0;
+    Object.keys(calendarData).forEach(k => {
+      const parts = k.split('-').map(Number);
+      if(parts[0]===y && (parts[1]-1)===m){
+        if(calendarData[k].state===1) present++;
+        if(calendarData[k].state===2) absent++;
+      }
+    });
+    presentCountEl.textContent = present;
+    absentCountEl.textContent = absent;
+  }
+
+  let pressTimer = null;
+  let longPressTriggered = false;
+  const LONG_PRESS_MS = 550;
+
+  function attachCellHandlers(){
+    grid.querySelectorAll('.day-cell:not(.empty)').forEach(cell => {
+      cell.addEventListener('pointerdown', onPointerDown);
+      cell.addEventListener('pointerup', onPointerUp);
+      cell.addEventListener('pointerleave', onPointerCancel);
+      cell.addEventListener('pointercancel', onPointerCancel);
+      cell.addEventListener('contextmenu', e => e.preventDefault());
+    });
+  }
+
+  function onPointerDown(e){
+    longPressTriggered = false;
+    const cell = e.currentTarget;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {
+      longPressTriggered = true;
+      openModal(cell.dataset.date);
+      if(navigator.vibrate) navigator.vibrate(15);
+    }, LONG_PRESS_MS);
+  }
+
+  function onPointerUp(e){
+    clearTimeout(pressTimer);
+    if(longPressTriggered){ longPressTriggered = false; return; }
+    const cell = e.currentTarget;
+    cycleState(cell.dataset.date, cell);
+  }
+
+  function onPointerCancel(){
+    clearTimeout(pressTimer);
+  }
+
+  function cycleState(key, cellEl){
+    const rec = calendarData[key] || { state:0, note:'' };
+    rec.state = (rec.state + 1) % 3;
+    calendarData[key] = rec;
+    saveData();
+    const d = parseInt(key.split('-')[2], 10);
+    cellEl.className = `day-cell state-${rec.state}` + (cellEl.classList.contains('today') ? ' today' : '');
+    cellEl.innerHTML = cellInnerHTML(key, d);
+    updateStats();
+  }
+
+  function openModal(key){
+    activeDateKey = key;
+    const [y,m,d] = key.split('-').map(Number);
+    const dateObj = new Date(y, m-1, d);
+    const wd = weekdayFull[dateObj.getDay()];
+    modalDate.textContent = `${wd} ${d} ${monthNames[m-1]} ${y}`;
+    const rec = calendarData[key] || { state:0, note:'' };
+    noteText.value = rec.note || '';
+    modalOverlay.classList.add('open');
+    setTimeout(() => noteText.focus(), 120);
+  }
+
+  function closeModal(){
+    modalOverlay.classList.remove('open');
+    activeDateKey = null;
+  }
+
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal();
+  });
+
+  document.getElementById('saveNote').addEventListener('click', () => {
+    if(!activeDateKey) return;
+    const rec = calendarData[activeDateKey] || { state:0, note:'' };
+    rec.note = noteText.value.trim();
+    calendarData[activeDateKey] = rec;
+    saveData();
+    closeModal();
+    render();
+  });
+
+  document.getElementById('deleteNote').addEventListener('click', () => {
+    if(!activeDateKey) return;
+    if(calendarData[activeDateKey]){
+      calendarData[activeDateKey].note =
